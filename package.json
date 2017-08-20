@@ -1,0 +1,16 @@
+{
+  "name": "socialcontracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "myScript.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "casperjs": "^1.1.4",
+    "phantomjs": "^2.1.7",
+    "puppeteer": "^0.9.0"
+  }
+}
