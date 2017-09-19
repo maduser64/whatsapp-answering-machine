@@ -207,10 +207,18 @@ async function getChatDetails() {
 
         const arr = divs.map((div) => {
             const chatTitle = div.querySelector('.chat-title span'),
-                timestamp = div.querySelector('.chat-meta .timestamp');
+                timestamp = div.querySelector('.chat-meta .timestamp'),
+                style = div.style || {zIndex: 0},
+                zIndex = parseInt(style.zIndex|| 0, 10);
 
-            return {chatTitle: chatTitle.innerHTML, timestamp: timestamp.innerHTML}
-        });
+            return {zIndex, chatTitle: chatTitle.innerHTML, timestamp: timestamp.innerHTML}
+        }).sort(function (a, b) {
+            if (a.zIndex === b.zIndex) {
+                return 0;
+            }
+
+            return a.zIndex > b.zIndex ? -1 : 1;
+        })
 
         return Promise.resolve(arr);
     });
@@ -226,14 +234,15 @@ function cleanArray(arr) {
     return arr.map(item => {
         return {
             chatTitle: cleanName(item.chatTitle),
-            timestamp: item.timestamp
+            timestamp: item.timestamp,
+            zIndex: item.zIndex
         }
     })
 }
 
 const timestamp = () => (new Date()).getTime();
 
-let lastSend = {}, lastTimestamp, lastChatTitle;
+let lastSend = {};
 
 const getLastSend = (contactName) => lastSend[contactName] || 0;
 const timeSinceLastSend = (contactName) => Math.floor((timestamp() - getLastSend(contactName)) / 1000);
@@ -253,22 +262,23 @@ function filterGroups(arr) {
     return arr.filter(item => keywordsExist(item.chatTitle));
 }
 
-async function checkChanges(chat) {
+let lastTimestamps = {}, lastTimestamp, lastChatTitle;
 
-    log(chat.chatTitle, chat.timestamp)
+async function checkChangesForChat(chat) {
+    log(chat.chatTitle, chat.timestamp);
 
     const change = lastTimestamp !== chat.timestamp || lastChatTitle !== chat.chatTitle;
 
     if (!change) {
-        log('no change', lastTimestamp, chat.timestamp, lastChatTitle, chat.chatTitle);
+        log('no change', lastTimestamp, chat.timestamp, chat.chatTitle);
         return;
     }
 
     const secondSinceSentToThisContact = timeSinceLastSend(chat.chatTitle);
 
-    if (secondSinceSentToThisContact < 10 * 60) {
+    if (secondSinceSentToThisContact < 8 * 60 * 60) {
         log('change, but contact already received message ' + secondSinceSentToThisContact + ' seconds ago. aborting.');
-        lastTimestamp = chat.timestamp;
+        lastTimestamps[chat.chatTitle]  = chat.timestamp;
         return;
     } else {
         log('change, sending message (last time sent ' + secondSinceSentToThisContact + ' seconds ago)');
@@ -278,7 +288,6 @@ async function checkChanges(chat) {
     await sendAutoMessage();
 
     lastSend[chat.chatTitle] = timestamp();
-
     lastTimestamp = chat.timestamp;
     lastChatTitle = chat.chatTitle;
 }
@@ -287,7 +296,7 @@ async function checkGroupNames() {
     return await getChatDetails()
         .then(response => cleanArray(response))
         .then(response => filterGroups(response))
-        .then(response => checkChanges(response[0]));
+        .then(response => checkChangesForChat(response[0]));
 }
 
 module.exports = {
@@ -311,6 +320,5 @@ module.exports = {
     setContractId,
     setAvailability,
     sendAutoMessage,
-    checkChanges,
     checkGroupNames,
 };
