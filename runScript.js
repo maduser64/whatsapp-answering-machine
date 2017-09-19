@@ -1,8 +1,4 @@
-const points = {
-    first: {x: 183, y: 144},
-    second: {x: 183, y: 216},
-    third: {x: 183, y: 294},
-};
+
 
 
 const clickOnFirst = () => {
@@ -15,16 +11,7 @@ const getTopPeople = async () => {
     const doc = await page.$('.infinite-list-item');
     console.log('doc -> ', doc);
 
-    await page.evaluate(() => {
-        console.log('true6 -> ', true);
-        let divs = [...document.querySelectorAll('.infinite-list-item')];
-        return divs.map((div) => {
-            const chatTitle = div.querySelector('.chat-title span'),
-                timestamp = div.querySelector('.chat-meta .timestamp');
 
-            console.log(chatTitle.title, timestamp.innerHTML);
-        });
-    });
 
     console.log('true5 -> ', true);
 

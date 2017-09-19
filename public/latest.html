@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Latest screenshot</title>
+    <style type="text/css">
+        body {
+            background-image:url('latest.png');
+            background-size:cover;
+        }
+
+        textarea {
+            position: absolute;
+            top:120px;
+            right:10px;
+            width:500px;
+            height:300px;
+        }
+
+        #input {
+            position: absolute;
+            top:70px;
+            right:10px;
+            width:500px;
+            height:30px;
+        }
+    </style>
+</head>
+<body>
+<input type="text" id="input" />
+<textarea rows="30" cols="30" id="log">
+</textarea>
+<script type="text/javascript">
+    const textarea = document.querySelector('#log');
+    const input = document.querySelector('#input');
+    let typing = false;
+
+    function timestamp() {
+        return (new Date()).getTime();
+    }
+
+    let lastTime= timestamp();
+
+    function getDelay() {
+        const now = timestamp();
+        const delta = now - lastTime;
+        lastTime = now;
+        return delta;
+    }
+
+    function log(ev, log) {
+        if (ev && (ev.target.id === 'log'|| ev.target.id === 'input')) {
+            return;
+        }
+
+        textarea.value += log + '\n';
+    }
+
+    function click(ev) {
+        const params = JSON.stringify([ev.clientX, ev.clientY]);
+        const delay = getDelay();
+        log(ev, 'common.click(' + params + ', ' + delay + ');');
+
+    }
+
+    function keydown(ev) {
+        if (!typing) {
+            return
+        }
+
+        if(ev.key==='Escape') {
+            document.removeEventListener('click', click);
+            document.removeEventListener('keydown', keydown);
+            return;
+        }
+
+        const delay = getDelay();
+        log(null, 'common.sendCharacter(\'' + ev.key +'\',' + delay + ');');
+    }
+
+    function reloadImage() {
+        const url = 'latest.png?rnd=' + Math.random();
+
+        const image = new Image();
+        image.src = url;
+        image.onload = function () {
+            document.body.style.backgroundImage = 'url(' + url + ')';
+        };
+    }
+
+    function init() {
+
+       setInterval(reloadImage,  2000);
+
+       document.addEventListener('click', click);
+       document.addEventListener('keydown', keydown);
+       input.addEventListener('focus', function () {typing = true});
+       input.addEventListener('blur', function () {typing = true});
+    }
+
+    init();
+
+</script>
+</body>
+</html>
