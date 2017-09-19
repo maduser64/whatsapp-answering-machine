@@ -1,3 +1,5 @@
+const log = require('./log').logT;
+
 const template = '* הודעה אוטומטית * הי אני לא זמין כרגע בוואטסאפ אבל אהיה זמין $$$. טרם קראתי את ההודעה שלך. שעות הזמינות שלי הן: $$';
 const templateLink = 'https://socialcontracts.io/#/$$$?$$';
 
@@ -35,16 +37,20 @@ function setContractId(_contractId) {
     contractId = _contractId;
 }
 
-const sendAutoMessage = async (common) => {
+const sendAutoMessage = async () => {
     const when = availability.whatsapp,
         link = contractLink(contractId),
         message = autoMessage(when, link);
 
+    if (when === 'זמין עכשיו') {
+        return;
+    }
+
     console.log('message -> ', message);
 
-    await common.clickNear([637, 668]);
-    await common.writeText(message);
-    await common.enter();
+    await clickNear([637, 668]);
+    await writeText(message);
+    await enter();
 };
 
 
@@ -196,16 +202,92 @@ async function type(string, delay) {
 }
 
 async function getChatDetails() {
-    return await this.page.evaluate(() => {
-        console.log('true6 -> ', true);
+    return await page.evaluate(() => {
         let divs = [...document.querySelectorAll('.infinite-list-item')];
-        return divs.map((div) => {
+
+        const arr = divs.map((div) => {
             const chatTitle = div.querySelector('.chat-title span'),
                 timestamp = div.querySelector('.chat-meta .timestamp');
 
-            console.log(chatTitle.title, timestamp.innerHTML);
+            return {chatTitle: chatTitle.innerHTML, timestamp: timestamp.innerHTML}
         });
+
+        return Promise.resolve(arr);
     });
+}
+
+function cleanName(name) {
+    name = name.replace(/<!-- react-text: \d+ -->/gi, '');
+    name = name.replace('<!-- /react-text -->', '');
+    return name;
+}
+
+function cleanArray(arr) {
+    return arr.map(item => {
+        return {
+            chatTitle: cleanName(item.chatTitle),
+            timestamp: item.timestamp
+        }
+    })
+}
+
+const timestamp = () => (new Date()).getTime();
+
+let lastSend = {}, lastTimestamp, lastChatTitle;
+
+const getLastSend = (contactName) => lastSend[contactName] || 0;
+const timeSinceLastSend = (contactName) => Math.floor((timestamp() - getLastSend(contactName)) / 1000);
+
+const groupsKeywords = ['משפחה', 'יסודות', 'אהרונסון'];
+
+
+const keywordsExist = (string) => {
+    const newGroups = groupsKeywords
+        .filter(keyword => string.indexOf(keyword) < 0);
+
+    return newGroups.length === groupsKeywords.length;
+
+}
+
+function filterGroups(arr) {
+    return arr.filter(item => keywordsExist(item.chatTitle));
+}
+
+async function checkChanges(chat) {
+
+    log(chat.chatTitle, chat.timestamp)
+
+    const change = lastTimestamp !== chat.timestamp || lastChatTitle !== chat.chatTitle;
+
+    if (!change) {
+        log('no change', lastTimestamp, chat.timestamp, lastChatTitle, chat.chatTitle);
+        return;
+    }
+
+    const secondSinceSentToThisContact = timeSinceLastSend(chat.chatTitle);
+
+    if (secondSinceSentToThisContact < 10 * 60) {
+        log('change, but contact already received message ' + secondSinceSentToThisContact + ' seconds ago. aborting.');
+        lastTimestamp = chat.timestamp;
+        return;
+    } else {
+        log('change, sending message (last time sent ' + secondSinceSentToThisContact + ' seconds ago)');
+    }
+
+    await clickOnFirst();
+    await sendAutoMessage();
+
+    lastSend[chat.chatTitle] = timestamp();
+
+    lastTimestamp = chat.timestamp;
+    lastChatTitle = chat.chatTitle;
+}
+
+async function checkGroupNames() {
+    return await getChatDetails()
+        .then(response => cleanArray(response))
+        .then(response => filterGroups(response))
+        .then(response => checkChanges(response[0]));
 }
 
 module.exports = {
@@ -229,5 +311,6 @@ module.exports = {
     setContractId,
     setAvailability,
     sendAutoMessage,
-
+    checkChanges,
+    checkGroupNames,
 };

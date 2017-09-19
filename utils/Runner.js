@@ -9,19 +9,24 @@ const refreshStartTime = require('./log').refreshStartTime;
 const {configureContract, fetchContract} = require('./contracts_api');
 const {contractToText} = require('./contracts');
 
+const debugMode = false;
+
 class Runner {
     constructor(url, script_path = 'scripts/instructions.js', delta = 500) {
         this.script_path = script_path;
         this.lastHash = '';
         this.delta = delta;
-        this._interval = null;
         this.url = url;
         this.actionId = 0;
         this.common = common;
 
+        this._interval = null;
+        this._intervalFetch = null;
+
         this.step = this.step.bind(this);
         this.runAction = this.runAction.bind(this);
         this.takeScreenshot = this.takeScreenshot.bind(this);
+        this.refreshAvailability = this.refreshAvailability.bind(this);
     }
 
     setContractId(contractId) {
@@ -63,7 +68,8 @@ class Runner {
     async play() {
         refreshStartTime();
         log('play');
-        this._interval = setInterval(this.step, this.delta);
+        this._interval = setInterval(this.step, debugMode ? this.delta: 20000);
+        // this._intervalFetch = setInterval(this.refreshAvailability, 30 * 1000);
     }
 
     runJS(js) {
@@ -83,11 +89,14 @@ class Runner {
         const content = await readFile(this.script_path),
             hash = checksum(content);
 
-        if (hash === this.lastHash) {
+        if (debugMode && hash === this.lastHash) {
             return;
         }
 
-        log('new hash ' + hash);
+        if (hash !== this.lastHash) {
+            log('new hash ' + hash);
+        }
+
         this.lastHash = hash;
 
         const result = await this.runJS(content);

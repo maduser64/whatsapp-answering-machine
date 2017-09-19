@@ -1,12 +1,16 @@
 
 
+
+
 (async function () {
 
     const common = this.common;
 
-    await common.clickOnFirst();
-    await common.sendAutoMessage(common);
+    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
+    // this.refreshAvailability();
+
+    await common.checkGroupNames();
     await this.takeScreenshotLatest();
 
     return [];
