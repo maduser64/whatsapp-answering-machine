@@ -7,7 +7,7 @@ const log = require('./log').logT;
 const refreshStartTime = require('./log').refreshStartTime;
 
 const {configureContract, fetchContract} = require('./contracts_api');
-const {contractToText} = require('./contracts');
+const {contractToText} = require('social-contracts/utils/contracts');
 
 const debugMode = false;
 

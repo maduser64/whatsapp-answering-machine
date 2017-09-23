@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "firebase": "^4.3.1",
-    "puppeteer": "0.10.2"
+    "puppeteer": "0.10.2",
+    "social-contracts": "^0.1.3"
   }
 }
